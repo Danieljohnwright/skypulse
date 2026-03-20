@@ -6,7 +6,7 @@ export default function Navbar({ loggedIn }: { loggedIn: boolean }) {
       <h1 className="font-bold text-xl"> SKYPULSE</h1>
       <div className="space-x-4">
         {loggedIn ? (
-          <Link href="/dashboard" className="hover:underline">
+          <Link href="/Dashboard" className="hover:underline">
             Dashboard
           </Link>
         ) : (

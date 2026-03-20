@@ -18,7 +18,7 @@ export default function Register() {
     <div className="min-h-screen bg-blue-100">
       <Navbar loggedIn={false} />
       <div className="max-w-md mx-auto mt-20 bg-white p-8 rounded shadow">
-        <h1 className="text-2xl font-bold mb-6">Register</h1>
+        <h1 className="text-2xl font-bold mb-6 text-blue-600">Register</h1>
         <div className="space-y-4">
           <Input
             placeholder="Username"
@@ -33,7 +33,9 @@ export default function Register() {
             onChange={setPassword}
           />
         </div>
-        <Button onClick={handleRegister}>Register</Button>
+        <button onClick={handleRegister} className="mt-4 w-full">
+          Register
+        </button>
       </div>
     </div>
   );
