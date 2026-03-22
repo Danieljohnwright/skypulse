@@ -3,23 +3,27 @@ interface InputProps {
   placeholder?: string;
   value: string;
   onChange: (val: string) => void;
+  className?: string;
+  id?: string;
 }
-
 export default function Input({
   type = "text",
   placeholder,
   value,
   onChange,
+  className = "",
+  id,
 }: InputProps) {
   return (
-    <input // ← note: lowercase <input>, not <Input>
+    <input
+      id={id}
       type={type}
       placeholder={placeholder}
       value={value}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
         onChange(e.target.value)
       }
-      className="p-2 border rounded w-full"
+      className={`p-2 border rounded w-full ${className}`}
     />
   );
 }

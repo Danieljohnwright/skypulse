@@ -33,8 +33,10 @@ export default function WeatherCard({
         <span className="text-3xl">{getWeatherIcon(description)}</span>
       </div>
 
-      <p className={`text-3xl font-semibold mt-2 ${getTempColor(temperature)}`}>
-        {temperature}°C
+      <p
+        className={`text-3xl font-semibold mt-2 ${getTempColor(Math.round(temperature))}`}
+      >
+        {Math.round(temperature)}°C
       </p>
       <p className="capitalize text-gray-600 mt-1">{description}</p>
     </div>
