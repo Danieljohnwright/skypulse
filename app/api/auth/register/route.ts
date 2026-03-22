@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { name, email, password } = body;
 
-    // ✅ Validate input
+    // validate input
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: "All fields are required" },
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Check if user already exists
+    //  check if user already exists
     const [existing] = await db.execute<RowDataPacket[]>(
       "SELECT * FROM users WHERE email = ?",
       [email],
@@ -29,16 +29,16 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Hash password
+    //  hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Insert user
+    //  insert user
     await db.execute(
       "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
       [name, email, hashedPassword],
     );
 
-    // ✅ Success response
+    //  success message
     return NextResponse.json({ message: "User created successfully" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
