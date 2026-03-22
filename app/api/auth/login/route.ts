@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         id: user,
         email: user.email,
       },
-      "SECRET_KEY",
+      process.env.JWT_SECRET!,
       {
         expiresIn: "1d",
       },

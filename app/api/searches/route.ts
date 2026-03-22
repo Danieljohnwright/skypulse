@@ -8,7 +8,9 @@ const getUser = (req: Request) => {
   const token = authHeader?.split(" ")[1];
   if (!token) return null;
   try {
-    const decoded = jwt.verify(token, "SECRET_KEY") as { id: { id: number } };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      id: { id: number };
+    };
     return decoded.id.id;
   } catch {
     return null;
