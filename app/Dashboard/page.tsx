@@ -100,6 +100,17 @@ export default function Dashboard() {
     const city = searchCity.trim();
     if (!city) return;
 
+    // Check if city already exists
+    const alreadyAdded = weatherReports.some(
+      (w) => w.city.toLowerCase() === city.toLowerCase(),
+    );
+
+    if (alreadyAdded) {
+      alert(`${city} is already on your dashboard!`);
+      setSearchCity("");
+      return;
+    }
+
     try {
       const res = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
 
@@ -120,7 +131,6 @@ export default function Dashboard() {
         setRecommendations((prev) => [...prev, data]);
       }
 
-      // save city to database
       await fetch("/api/searches", {
         method: "POST",
         headers: {
@@ -135,6 +145,20 @@ export default function Dashboard() {
       console.error(err);
       alert("Something went wrong. Please try again.");
     }
+  };
+
+  const handleDeleteCity = async (cityName: string) => {
+    setWeatherReports((prev) => prev.filter((w) => w.city !== cityName));
+    setRecommendations((prev) => prev.filter((r) => r.city !== cityName));
+
+    await fetch("/api/searches", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ city: cityName }),
+    });
   };
 
   const avgTemp =
@@ -185,7 +209,7 @@ export default function Dashboard() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {weatherReports.map((w) => (
-                <WeatherCard key={w.city} {...w} />
+                <WeatherCard key={w.city} {...w} onDelete={handleDeleteCity} />
               ))}
             </div>
 
