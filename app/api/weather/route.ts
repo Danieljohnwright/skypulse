@@ -16,26 +16,39 @@ export async function GET(req: Request) {
 
   try {
     const res = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`,
+      `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${apiKey}`,
     );
 
     const data = await res.json();
 
     if (!res.ok) {
-      return NextResponse.json({ error: data.message }, { status: 400 });
+      return NextResponse.json(
+        { error: data.message || "City not found" },
+        { status: 400 },
+      );
     }
+
+    // Convert to km/h and round numbers
+    const windSpeedKmh = data.wind?.speed
+      ? Math.round(data.wind.speed * 3.6)
+      : 0;
 
     return NextResponse.json({
       city: data.name,
-      temperature: data.main.temp,
-      feelsLike: data.main.feels_like,
+      temperature: Math.round(data.main.temp),
+      feelsLike: Math.round(data.main.feels_like),
       humidity: data.main.humidity,
-      windSpeed: data.wind.speed,
+      windspeed: windSpeedKmh,
       description: data.weather[0].description,
+      pressure: data.main.pressure,
+      visibility: data.visibility
+        ? Math.round(data.visibility / 1000)
+        : undefined,
     });
   } catch (error) {
+    console.error("Weather API error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch weather" },
+      { error: "Failed to fetch weather data" },
       { status: 500 },
     );
   }

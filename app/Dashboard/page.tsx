@@ -3,13 +3,19 @@
 import { useEffect, useState } from "react";
 import Navbar from "../Components/Navbar";
 import WeatherCard from "../Components/WeatherCard";
+import RecommendedWeatherCard from "../Components/RecommendedWeatherCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 interface Weather {
   city: string;
   temperature: number;
+  feelsLike: number;
   description: string;
+  humidity: number;
+  windspeed: number;
+  pressure?: number;
+  visibility?: number;
 }
 
 export default function Dashboard() {
@@ -38,28 +44,46 @@ export default function Dashboard() {
         const cities = ["Johannesburg", "Durban", "Tokyo"];
         const results = await Promise.all(
           cities.map(async (city) => {
-            const res = await fetch(`/api/weather?city=${city}`);
-            try {
-              const data = await res.json();
-              return data;
-            } catch (err) {
-              console.error("JSON parse error:", err);
-              return null;
-            }
+            const res = await fetch(
+              `/api/weather?city=${encodeURIComponent(city)}`,
+            );
+            if (!res.ok) return null;
+            return res.json();
           }),
         );
 
         const validResults = results.filter((r): r is Weather => r !== null);
         setWeatherReports(validResults);
 
-        const sunny = validResults.filter(
-          (city) =>
-            city.temperature >= 25 &&
-            city.description.toLowerCase().includes("clear"),
+        // Automatic Recommended Warm Cities
+        const recommendedCityNames = ["Cape Town", "Miami", "Bangkok"];
+
+        const recResults = await Promise.all(
+          recommendedCityNames.map(async (city) => {
+            const res = await fetch(
+              `/api/weather?city=${encodeURIComponent(city)}`,
+            );
+            if (!res.ok) return null;
+            return res.json();
+          }),
         );
-        setRecommendations(sunny);
+
+        const validRecs = recResults.filter((r): r is Weather => r !== null);
+
+        const sunnyRecs = validRecs.filter(
+          (city) =>
+            city.temperature >= 24 &&
+            (city.description.toLowerCase().includes("clear") ||
+              city.description.toLowerCase().includes("sunny") ||
+              city.description.toLowerCase().includes("few clouds")),
+        );
+
+        setRecommendations(
+          sunnyRecs.length >= 2 ? sunnyRecs : validRecs.slice(0, 3),
+        );
       } catch (error) {
         console.error("Fetch error:", error);
+        setRecommendations([]);
       }
 
       try {
@@ -71,7 +95,9 @@ export default function Dashboard() {
         if (savedData.cities && savedData.cities.length > 0) {
           const results = await Promise.all(
             savedData.cities.map(async (city: string) => {
-              const res = await fetch(`/api/weather?city=${city}`);
+              const res = await fetch(
+                `/api/weather?city=${encodeURIComponent(city)}`,
+              );
               if (!res.ok) return null;
               return res.json();
             }),
@@ -161,6 +187,45 @@ export default function Dashboard() {
     });
   };
 
+  const handleAddCityFromRec = async (cityName: string) => {
+    const alreadyAdded = weatherReports.some(
+      (w) => w.city.toLowerCase() === cityName.toLowerCase(),
+    );
+
+    if (alreadyAdded) {
+      setError(`${cityName} is already on your dashboard.`);
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `/api/weather?city=${encodeURIComponent(cityName)}`,
+      );
+      if (!res.ok) {
+        setError(`Could not fetch "${cityName}".`);
+        return;
+      }
+
+      const data: Weather = await res.json();
+
+      setWeatherReports((prev) => [...prev, data]);
+
+      await fetch("/api/searches", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ city: data.city }),
+      });
+
+      setError("");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to add city. Please try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar loggedIn={true} />
@@ -168,7 +233,7 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {userName} 👋
+            Welcome, {userName} !
           </h1>
           <p className="text-gray-500 mt-1">
             Here's what the weather looks like around the world today.
@@ -210,45 +275,48 @@ export default function Dashboard() {
                 {weatherReports.map((w) => (
                   <WeatherCard
                     key={w.city}
-                    {...w}
+                    city={w.city}
+                    temperature={w.temperature}
+                    description={w.description}
+                    feelsLike={w.feelsLike}
+                    humidity={w.humidity}
+                    windspeed={w.windspeed}
+                    pressure={w.pressure}
+                    visibility={w.visibility}
                     onDelete={handleDeleteCity}
                   />
                 ))}
               </div>
             </section>
 
+            {/* Updated Recommended Section with expandable cards */}
             <section>
-              <h2 className="text-lg font-semibold text-gray-700 mb-4">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 ☀️ Lekker Warm Destinations
+                <span className="text-xs font-normal text-gray-400">
+                  (Recommended)
+                </span>
               </h2>
+
               {recommendations.length === 0 ? (
                 <p className="text-gray-400 text-sm">
-                  No sunny destinations right now. Check back later!
+                  No sunny warm destinations right now. Check back later!
                 </p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {recommendations.map((r) => (
-                    <div
+                    <RecommendedWeatherCard
                       key={r.city}
-                      className="bg-gradient-to-br from-orange-50 to-yellow-50 border border-orange-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition"
-                    >
-                      <div className="flex justify-between items-center">
-                        <h2 className="font-bold text-gray-800">{r.city}</h2>
-                        <span className="text-2xl">☀️</span>
-                      </div>
-                      <p className="text-4xl font-bold text-orange-500 mt-3">
-                        {Math.round(r.temperature)}°
-                        <span className="text-xl font-normal text-orange-300">
-                          C
-                        </span>
-                      </p>
-                      <p className="capitalize text-gray-500 text-sm mt-1">
-                        {r.description}
-                      </p>
-                      <p className="text-xs mt-3 font-medium text-orange-400">
-                        Perfect Sunny Getaway ✈️
-                      </p>
-                    </div>
+                      city={r.city}
+                      temperature={r.temperature}
+                      feelsLike={r.feelsLike}
+                      description={r.description}
+                      humidity={r.humidity}
+                      windspeed={r.windspeed}
+                      pressure={r.pressure}
+                      visibility={r.visibility}
+                      onAdd={() => handleAddCityFromRec(r.city)}
+                    />
                   ))}
                 </div>
               )}

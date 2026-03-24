@@ -2,25 +2,25 @@
 
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
-import { ChevronDown, Trash2, Droplet, Wind, Gauge, Eye } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
+import { Droplet, Wind, Gauge, Eye } from "lucide-react";
 
-interface WeatherCardProps {
+interface RecommendedWeatherCardProps {
   city: string;
   temperature: number;
-  description: string;
   feelsLike: number;
+  description: string;
   humidity: number;
   windspeed: number;
   pressure?: number;
   visibility?: number;
-  onDelete?: (city: string) => void;
+  onAdd: () => void;
 }
 
 const getWeatherIcon = (description: string) => {
@@ -34,88 +34,60 @@ const getWeatherIcon = (description: string) => {
   return "🌤️";
 };
 
-const getTempBadge = (temp: number) => {
-  if (temp >= 28) return { label: "Hot", class: "bg-red-100 text-red-600" };
-  if (temp >= 20)
-    return { label: "Warm", class: "bg-orange-100 text-orange-600" };
-  if (temp >= 10) return { label: "Cool", class: "bg-blue-100 text-blue-600" };
-  return { label: "Cold", class: "bg-indigo-100 text-indigo-600" };
-};
-
-export default function WeatherCard({
+export default function RecommendedWeatherCard({
   city,
   temperature,
-  description,
   feelsLike,
+  description,
   humidity,
   windspeed,
   pressure,
   visibility,
-  onDelete,
-}: WeatherCardProps) {
+  onAdd,
+}: RecommendedWeatherCardProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const badge = getTempBadge(Math.round(temperature));
   const icon = getWeatherIcon(description);
 
   return (
-    <Card className="hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden">
+    <Card className="overflow-hidden hover:shadow-md transition-all border border-orange-100 bg-gradient-to-br from-orange-50 to-yellow-50">
       <CardContent className="p-6">
-        {/* Top Row: Icon + City + Controls */}
+        {/* Header: Icon + City + Chevron */}
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-4">
             <span className="text-5xl">{icon}</span>
             <div>
               <h2 className="font-bold text-2xl text-gray-900">{city}</h2>
-              <p className="capitalize text-gray-600 mt-0.5">{description}</p>
+              <p className="capitalize text-gray-600 mt-1">{description}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {onDelete && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onDelete(city)}
-                className="h-9 w-9 text-gray-400 hover:text-red-500"
-              >
-                <Trash2 className="h-5 w-5" />
+          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <ChevronDown
+                  className={`h-5 w-5 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                />
               </Button>
-            )}
-
-            <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9">
-                  <ChevronDown
-                    className={`h-5 w-5 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                  />
-                </Button>
-              </CollapsibleTrigger>
-            </Collapsible>
-          </div>
+            </CollapsibleTrigger>
+          </Collapsible>
         </div>
 
-        {/* Temperature + Badge */}
-        <div className="flex items-end justify-between mb-6">
+        {/* Temperature Section */}
+        <div className="flex items-end justify-between mb-8">
           <div>
-            <p className="text-6xl font-light text-gray-900 tracking-tight">
+            <p className="text-6xl font-light text-orange-600 tracking-tight">
               {Math.round(temperature)}°
-              <span className="text-3xl text-gray-400">C</span>
+              <span className="text-3xl font-normal text-orange-300">C</span>
             </p>
-            <p className="text-gray-500 mt-1">
+            <p className="text-gray-500 text-sm mt-1">
               Feels like {Math.round(feelsLike)}°C
             </p>
           </div>
-
-          <Badge
-            className={`${badge.class} border-0 px-4 py-1 text-sm font-medium`}
-          >
-            {badge.label}
-          </Badge>
         </div>
 
-        {/* Expanded Details */}
+        {/* Expandable Details */}
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <CollapsibleContent>
+          <CollapsibleContent className="pb-6">
             <div className="pt-6 border-t grid grid-cols-2 gap-x-10 gap-y-6">
               <div className="flex items-center gap-3">
                 <Droplet className="h-5 w-5 text-blue-500 flex-shrink-0" />
@@ -163,6 +135,16 @@ export default function WeatherCard({
             </div>
           </CollapsibleContent>
         </Collapsible>
+
+        {/* Add to Dashboard Button */}
+        <Button
+          onClick={onAdd}
+          className="mt-4 w-full bg-orange-600 hover:bg-orange-700 text-white font-medium"
+          size="sm"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add to My Dashboard
+        </Button>
       </CardContent>
     </Card>
   );
