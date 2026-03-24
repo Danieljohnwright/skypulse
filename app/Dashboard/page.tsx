@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Navbar from "../Components/Navbar";
 import WeatherCard from "../Components/WeatherCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface Weather {
   city: string;
@@ -16,12 +18,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchCity, setSearchCity] = useState("");
   const [userName, setUserName] = useState("");
+  const [error, setError] = useState("");
 
   const getToken = () => localStorage.getItem("token");
 
   useEffect(() => {
     const fetchWeather = async () => {
-      // fetch user name
       try {
         const userRes = await fetch("/api/auth/me", {
           headers: { Authorization: `Bearer ${getToken()}` },
@@ -32,7 +34,6 @@ export default function Dashboard() {
         console.error("Could not fetch user:", err);
       }
 
-      // fetch default cities
       try {
         const cities = ["Johannesburg", "Durban", "Tokyo"];
         const results = await Promise.all(
@@ -61,7 +62,6 @@ export default function Dashboard() {
         console.error("Fetch error:", error);
       }
 
-      // fetch saved cities
       try {
         const savedRes = await fetch("/api/searches", {
           headers: { Authorization: `Bearer ${getToken()}` },
@@ -100,13 +100,14 @@ export default function Dashboard() {
     const city = searchCity.trim();
     if (!city) return;
 
-    // Check if city already exists
+    setError("");
+
     const alreadyAdded = weatherReports.some(
       (w) => w.city.toLowerCase() === city.toLowerCase(),
     );
 
     if (alreadyAdded) {
-      alert(`${city} is already on your dashboard!`);
+      setError(`${city} is already on your dashboard.`);
       setSearchCity("");
       return;
     }
@@ -115,12 +116,11 @@ export default function Dashboard() {
       const res = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
 
       if (!res.ok) {
-        alert(`Could not find "${city}". Try searching for another city`);
+        setError(`Could not find "${city}". Try another city.`);
         return;
       }
 
       const data: Weather = await res.json();
-
       setWeatherReports((prev) => [...prev, data]);
 
       if (
@@ -143,7 +143,7 @@ export default function Dashboard() {
       setSearchCity("");
     } catch (err) {
       console.error(err);
-      alert("Something went wrong. Please try again.");
+      setError("Something went wrong. Please try again.");
     }
   };
 
@@ -161,92 +161,98 @@ export default function Dashboard() {
     });
   };
 
-  const avgTemp =
-    weatherReports.reduce((sum, w) => sum + w.temperature, 0) /
-    (weatherReports.length || 1);
-
-  const bgClass =
-    avgTemp >= 25
-      ? "from-orange-200 via-yellow-100 to-red-200"
-      : "from-blue-200 via-sky-100 to-indigo-200";
-
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${bgClass}`}>
+    <div className="min-h-screen bg-gray-50">
       <Navbar loggedIn={true} />
 
-      <div className="max-w-6xl mx-auto p-8">
-        <h1 className="text-3xl font-bold mb-6 text-blue-800">
-          Welcome, {userName} 👋
-        </h1>
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Welcome back, {userName} 👋
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Here's what the weather looks like around the world today.
+          </p>
+        </div>
 
-        <div className="mb-10">
-          <h2 className="text-xl font-semibold mb-3 text-gray-700">Search</h2>
-          <form onSubmit={handleAddCity} className="flex gap-3 max-w-md">
-            <input
+        <div className="mb-8">
+          <form onSubmit={handleAddCity} className="flex gap-3 max-w-lg">
+            <Input
               type="text"
               value={searchCity}
               onChange={(e) => setSearchCity(e.target.value)}
-              placeholder="eg. Johannesburg, Cape Town, London"
-              className="text-gray-500 flex-1 mb-5 px-5 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-500 text-xl"
+              placeholder="Search a city eg. Cape Town, London..."
+              className="text-gray-600"
               required
             />
-            <button
+            <Button
               type="submit"
-              className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-2xl transition-all"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               Add City
-            </button>
+            </Button>
           </form>
+          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </div>
 
         {loading ? (
-          <p className="text-gray-600">Loading weather data...</p>
+          <div className="flex items-center gap-2 text-gray-500">
+            <span className="animate-spin text-xl">🌀</span>
+            <p>Loading weather data...</p>
+          </div>
         ) : (
           <>
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">
-              Current Weather
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {weatherReports.map((w) => (
-                <WeatherCard key={w.city} {...w} onDelete={handleDeleteCity} />
-              ))}
-            </div>
-
-            <h2 className="text-2xl font-semibold mt-10 mb-4 text-gray-800">
-              Lekker Warm Destinations
-            </h2>
-
-            {recommendations.length === 0 ? (
-              <p className="text-gray-600">
-                No sunny destinations right now...
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recommendations.map((r) => (
-                  <div
-                    key={r.city}
-                    className="bg-gradient-to-r from-yellow-200 to-orange-200 p-5 rounded-2xl shadow-md hover:shadow-xl transition"
-                  >
-                    <div className="flex justify-between items-center">
-                      <h2 className="font-bold text-xl text-gray-800">
-                        {r.city}
-                      </h2>
-                      <span className="text-3xl">☀️</span>
-                    </div>
-                    <p className="text-3xl font-semibold text-orange-600 mt-2">
-                      {Math.round(r.temperature)}°C
-                    </p>
-                    <p className="capitalize text-gray-700 mt-1">
-                      {r.description}
-                    </p>
-                    <p className="text-sm mt-2 font-medium text-orange-800">
-                      Perfect Sunny Getaway!
-                    </p>
-                  </div>
+            <section className="mb-10">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4">
+                Current Weather
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {weatherReports.map((w) => (
+                  <WeatherCard
+                    key={w.city}
+                    {...w}
+                    onDelete={handleDeleteCity}
+                  />
                 ))}
               </div>
-            )}
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-gray-700 mb-4">
+                ☀️ Lekker Warm Destinations
+              </h2>
+              {recommendations.length === 0 ? (
+                <p className="text-gray-400 text-sm">
+                  No sunny destinations right now. Check back later!
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recommendations.map((r) => (
+                    <div
+                      key={r.city}
+                      className="bg-gradient-to-br from-orange-50 to-yellow-50 border border-orange-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition"
+                    >
+                      <div className="flex justify-between items-center">
+                        <h2 className="font-bold text-gray-800">{r.city}</h2>
+                        <span className="text-2xl">☀️</span>
+                      </div>
+                      <p className="text-4xl font-bold text-orange-500 mt-3">
+                        {Math.round(r.temperature)}°
+                        <span className="text-xl font-normal text-orange-300">
+                          C
+                        </span>
+                      </p>
+                      <p className="capitalize text-gray-500 text-sm mt-1">
+                        {r.description}
+                      </p>
+                      <p className="text-xs mt-3 font-medium text-orange-400">
+                        Perfect Sunny Getaway ✈️
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </>
         )}
       </div>
